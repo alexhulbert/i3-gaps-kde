@@ -318,6 +318,72 @@ CFGFUN(smart_gaps, const char *enable) {
         config.smart_gaps = eval_boolstr(enable) ? SMART_GAPS_ON : SMART_GAPS_OFF;
 }
 
+static void create_corners_assignment(const char *workspace, corners_t corners) {
+    DLOG("Setting corners for workspace %s\n", workspace);
+    DLOG("S%d %d \n", corners.size, corners.shape);
+
+    struct Workspace_Assignment *assignment;
+    TAILQ_FOREACH(assignment, &ws_assignments, ws_assignments) {
+        if (strcasecmp(assignment->name, workspace) == 0) {
+            assignment->corners.size = corners.size;
+            assignment->corners.shape = corners.shape;
+
+            return;
+        }
+    }
+
+    // Assignment does not yet exist, let's create it.
+    assignment = scalloc(1, sizeof(struct Workspace_Assignment));
+    assignment->name = sstrdup(workspace);
+    assignment->output = NULL;
+
+    assignment->corners.size = corners.size;
+    assignment->corners.shape = corners.shape;
+
+    TAILQ_INSERT_TAIL(&ws_assignments, assignment, ws_assignments);
+}
+
+CFGFUN(corners, const char *workspace, const char *shape, const long value) {
+    int pixels = logical_px(value);
+    corners_t corners = (corners_t){0, DEFAULT_CORNERS};
+
+    DLOG("corners %s, %d   ______________\n", shape, pixels);
+    // If no shape or default was defined
+    if (!strcmp(shape, "default")) {
+        DLOG("cor");
+        if (workspace == NULL) {
+            config.corners.size = 0;
+            config.corners.shape = DEFAULT_CORNERS;
+        } else {
+
+            create_corners_assignment(workspace, corners);
+        }
+    } else if (!strcmp(shape, "rounded")) {
+        if (workspace == NULL) {
+            config.corners.size = pixels;
+            config.corners.shape = ROUNDED_CORNERS;
+            DLOG("rounded corners\n");
+        } else {
+            corners.size = pixels;
+            corners.shape = ROUNDED_CORNERS;
+            create_corners_assignment(workspace, corners);
+        }
+    } else if (!strcmp(shape, "triangular")) {
+        if (workspace == NULL) {
+            config.corners.size = pixels;
+            config.corners.shape = TRIANGULAR_CORNERS;
+            DLOG("triangular corners, %s\n", workspace);
+        } else {
+            corners.size = pixels;
+            corners.shape = TRIANGULAR_CORNERS;
+            create_corners_assignment(workspace, corners);
+        }
+    } else {
+        ELOG("Invalid command, cannot process shape %s", shape);
+    }
+}
+
+
 CFGFUN(floating_minimum_size, const long width, const long height) {
     config.floating_minimum_width = width;
     config.floating_minimum_height = height;
