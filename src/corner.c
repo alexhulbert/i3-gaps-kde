@@ -13,7 +13,7 @@
 /*
  * Apply shape to top corners when possible
  */
-void rounded_top(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black) {
+void rounded_top(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black, xcb_gcontext_t *white) {
 
     uint16_t w  = con->rect.width;
     uint16_t h  = con->rect.height;
@@ -26,13 +26,19 @@ void rounded_top(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black) {
       { w-d, 0, d, d, 0, 360 << 6 },
     };
 
-    xcb_poly_fill_arc(conn, *pid, *black, 2, arcs);
+    xcb_rectangle_t rects[] = {
+        { 0, 0, r, r },
+        { w-r, 0, r, r }
+    };
+
+    xcb_poly_fill_rectangle(conn, *pid, *black, 2, rects);
+    xcb_poly_fill_arc(conn, *pid, *white, 2, arcs);
 }
 
 /*
  * Apply shape to bottom corners when possible
  */
-void rounded_bottom(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black) {
+void rounded_bottom(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black, xcb_gcontext_t *white) {
 
     uint16_t w  = con->rect.width;
     uint16_t h  = con->rect.height;
@@ -45,7 +51,13 @@ void rounded_bottom(Con *con, xcb_pixmap_t *pid, xcb_gcontext_t *black) {
        { w-d, h-d, d, d, 0, 360 << 6 }
     };
 
-    xcb_poly_fill_arc(conn, *pid, *black, 2, arcs);
+    xcb_rectangle_t rects[] = {
+        { 0, h-r, r, r },
+        { w-r, h-r, r, r }
+    };
+
+    xcb_poly_fill_rectangle(conn, *pid, *black, 2, rects);
+    xcb_poly_fill_arc(conn, *pid, *white, 2, arcs);
 }
 
 /*
@@ -131,8 +143,8 @@ void x_shape_window(Con *con) {
 
     if (con->parent->type == CT_WORKSPACE || !tab_or_stack) {
         if (config.corners.shape == ROUNDED_CORNERS) {
-            rounded_top(con, &pid, &black);
-            rounded_bottom(con, &pid, &black);
+            rounded_top(con, &pid, &black, &white);
+            rounded_bottom(con, &pid, &black, &white);
         } else if (config.corners.shape == TRIANGULAR_CORNERS){
             triangled_top(con, &pid, &black);
             triangled_bottom(con, &pid, &black);
@@ -143,7 +155,7 @@ void x_shape_window(Con *con) {
 
     else {
         if (config.corners.shape == ROUNDED_CORNERS) {
-            rounded_bottom(con, &pid, &black);
+            rounded_bottom(con, &pid, &black, &white);
         } else if (config.corners.shape == TRIANGULAR_CORNERS){
             triangled_bottom(con, &pid, &black);
         } else {
